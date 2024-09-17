@@ -30,6 +30,7 @@ import {
 contract DeployImplementationsInput_Test is Test {
     DeployImplementationsInput dii;
 
+    bytes32 salt = 0x1000000000000000000000000000000000000000000000000000000000000001;
     uint256 withdrawalDelaySeconds = 100;
     uint256 minProposalSizeBytes = 200;
     uint256 challengePeriodSeconds = 300;
@@ -44,16 +45,28 @@ contract DeployImplementationsInput_Test is Test {
     }
 
     function test_loadInputFile_succeeds() public {
-        // See `test_loadInputFile_succeeds` in `DeploySuperchain.t.sol` for a reference implementation.
-        // This test is currently skipped because loadInputFile is not implemented.
-        vm.skip(true);
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/test/fixtures/test-deploy-implementations-in.toml");
+
+        dii.loadInputFile(path);
 
         // Compare the test inputs to the getter methods.
-        // assertEq(withdrawalDelaySeconds, dii.withdrawalDelaySeconds(), "100");
-        // assertEq(minProposalSizeBytes, dii.minProposalSizeBytes(), "200");
-        // assertEq(challengePeriodSeconds, dii.challengePeriodSeconds(), "300");
-        // assertEq(proofMaturityDelaySeconds, dii.proofMaturityDelaySeconds(), "400");
-        // assertEq(disputeGameFinalityDelaySeconds, dii.disputeGameFinalityDelaySeconds(), "500");
+        assertEq(salt, dii.salt(), "100");
+        assertEq(withdrawalDelaySeconds, dii.withdrawalDelaySeconds(), "200");
+        assertEq(minProposalSizeBytes, dii.minProposalSizeBytes(), "300");
+        assertEq(challengePeriodSeconds, dii.challengePeriodSeconds(), "400");
+        assertEq(proofMaturityDelaySeconds, dii.proofMaturityDelaySeconds(), "500");
+        assertEq(disputeGameFinalityDelaySeconds, dii.disputeGameFinalityDelaySeconds(), "600");
+        assertEq(release, dii.release(), "700");
+
+        // Addresses contained within the fixture test file: test/fixtures/test-deploy-implementations-in.toml
+        SuperchainConfig fixtureSuperchainConfigProxy =
+            SuperchainConfig(address(0xc7183455a4C133Ae270771860664b6B7ec320bB1));
+        ProtocolVersions fixtureProtocolVersionsProxy =
+            ProtocolVersions(address(0x1d1499e622D69689cdf9004d05Ec547d650Ff211));
+
+        assertEq(address(fixtureSuperchainConfigProxy), address(dii.superchainConfigProxy()), "800");
+        assertEq(address(fixtureProtocolVersionsProxy), address(dii.protocolVersionsProxy()), "900");
     }
 
     function test_getters_whenNotSet_revert() public {
@@ -146,7 +159,7 @@ contract DeployImplementationsOutput_Test is Test {
         vm.etch(address(l1StandardBridgeImpl), hex"01");
         vm.etch(address(optimismMintableERC20FactoryImpl), hex"01");
         vm.etch(address(disputeGameFactoryImpl), hex"01");
-        dio.set(dio.opsm.selector, address(opsm));
+        dio.set(dio.opsmProxy.selector, address(opsm));
         dio.set(dio.optimismPortalImpl.selector, address(optimismPortalImpl));
         dio.set(dio.delayedWETHImpl.selector, address(delayedWETHImpl));
         dio.set(dio.preimageOracleSingleton.selector, address(preimageOracleSingleton));
@@ -158,7 +171,7 @@ contract DeployImplementationsOutput_Test is Test {
         dio.set(dio.optimismMintableERC20FactoryImpl.selector, address(optimismMintableERC20FactoryImpl));
         dio.set(dio.disputeGameFactoryImpl.selector, address(disputeGameFactoryImpl));
 
-        assertEq(address(opsm), address(dio.opsm()), "50");
+        assertEq(address(opsm), address(dio.opsmProxy()), "50");
         assertEq(address(optimismPortalImpl), address(dio.optimismPortalImpl()), "100");
         assertEq(address(delayedWETHImpl), address(dio.delayedWETHImpl()), "200");
         assertEq(address(preimageOracleSingleton), address(dio.preimageOracleSingleton()), "300");
@@ -244,6 +257,45 @@ contract DeployImplementationsOutput_Test is Test {
         dio.set(dio.optimismMintableERC20FactoryImpl.selector, emptyAddr);
         vm.expectRevert(expectedErr);
         dio.optimismMintableERC20FactoryImpl();
+    }
+
+    function test_writeOutputFile_succeeds() public {
+        // string memory root = vm.projectRoot();
+
+        // // Use the expected data from the test fixture.
+        // string memory expOutPath = string.concat(root, "/test/fixtures/test-deploy-superchain-out.toml");
+        // string memory expOutToml = vm.readFile(expOutPath);
+
+        // // Parse each field of expOutToml individually.
+        // ProxyAdmin expSuperchainProxyAdmin = ProxyAdmin(expOutToml.readAddress(".superchainProxyAdmin"));
+        // SuperchainConfig expSuperchainConfigImpl = SuperchainConfig(expOutToml.readAddress(".superchainConfigImpl"));
+        // SuperchainConfig expSuperchainConfigProxy =
+        // SuperchainConfig(expOutToml.readAddress(".superchainConfigProxy"));
+        // ProtocolVersions expProtocolVersionsImpl = ProtocolVersions(expOutToml.readAddress(".protocolVersionsImpl"));
+        // ProtocolVersions expProtocolVersionsProxy =
+        // ProtocolVersions(expOutToml.readAddress(".protocolVersionsProxy"));
+
+        // // Etch code at each address so the code checks pass when settings values.
+        // vm.etch(address(expSuperchainConfigImpl), hex"01");
+        // vm.etch(address(expSuperchainConfigProxy), hex"01");
+        // vm.etch(address(expProtocolVersionsImpl), hex"01");
+        // vm.etch(address(expProtocolVersionsProxy), hex"01");
+
+        // dso.set(dso.superchainProxyAdmin.selector, address(expSuperchainProxyAdmin));
+        // dso.set(dso.superchainProxyAdmin.selector, address(expSuperchainProxyAdmin));
+        // dso.set(dso.superchainConfigImpl.selector, address(expSuperchainConfigImpl));
+        // dso.set(dso.superchainConfigProxy.selector, address(expSuperchainConfigProxy));
+        // dso.set(dso.protocolVersionsImpl.selector, address(expProtocolVersionsImpl));
+        // dso.set(dso.protocolVersionsProxy.selector, address(expProtocolVersionsProxy));
+
+        // string memory actOutPath = string.concat(root, "/.testdata/test-deploy-superchain-output.toml");
+        // dso.writeOutputFile(actOutPath);
+        // string memory actOutToml = vm.readFile(actOutPath);
+
+        // // Clean up before asserting so that we don't leave any files behind.
+        // vm.removeFile(actOutPath);
+
+        // assertEq(expOutToml, actOutToml);
     }
 }
 

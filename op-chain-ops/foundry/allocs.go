@@ -83,6 +83,14 @@ func (d *ForgeAllocs) Copy() *ForgeAllocs {
 }
 
 func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
+	type container struct {
+		Accounts json.RawMessage
+	}
+	var c container
+	if err := json.Unmarshal(b, &c); err != nil {
+		return err
+	}
+
 	// forge, since integrating Alloy, likes to hex-encode everything.
 	type forgeAllocAccount struct {
 		Balance hexutil.U256                `json:"balance"`
@@ -91,7 +99,7 @@ func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
 		Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
 	}
 	var allocs map[common.Address]forgeAllocAccount
-	if err := json.Unmarshal(b, &allocs); err != nil {
+	if err := json.Unmarshal(c.Accounts, &allocs); err != nil {
 		return err
 	}
 	d.Accounts = make(types.GenesisAlloc, len(allocs))
